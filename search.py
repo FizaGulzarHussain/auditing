@@ -12,6 +12,9 @@ _AGGREGATOR_DOMAINS = [
     "foursquare.com", "angi.com", "thumbtack.com", "houzz.com",
     "bbb.org", "manta.com", "superpages.com", "citysearch.com",
     "yp.com", "dexknows.com", "whitepages.com", "411.com",
+    "wheree.com", "kompass.com", "cylex.com", "hotfrog.com",
+    "brownbook.net", "n49.com", "tupalo.com", "yalwa.com",
+    "showmelocal.com", "merchantcircle.com", "ezlocal.com",
     # Search engines & maps
     "google.com", "bing.com", "yahoo.com", "duckduckgo.com",
     "maps.google.com", "maps.apple.com",
@@ -60,6 +63,12 @@ _MEDIA_KEYWORDS = [
     "/best-", "/top-", "review", "ranking", "comparison",
 ]
 
+# Generic directory-listing URL patterns (category/geo codes used by sites
+# like wheree.com, e.g. /Pizza-c68-g0166-Pakistan). These aren't tied to a
+# specific domain so a brand-new directory clone is still caught.
+import re as _re
+_DIRECTORY_PATH_RE = _re.compile(r"-c\d+-g\d+", _re.I)
+
 def is_aggregator(url: str) -> bool:
     try:
         parsed = _urlparse(url)
@@ -70,6 +79,9 @@ def is_aggregator(url: str) -> bool:
         # Block URLs whose path looks like a media article or list post
         full_url_lc = url.lower()
         if any(kw in full_url_lc for kw in _MEDIA_KEYWORDS):
+            return True
+        # Block generic directory-listing URL patterns (category/geo codes)
+        if _DIRECTORY_PATH_RE.search(full_url_lc):
             return True
         return False
     except Exception:

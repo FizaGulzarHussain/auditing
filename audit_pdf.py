@@ -105,7 +105,26 @@ def _sev(issue: str) -> tuple:
         return "MEDIUM", SKY
     return "LOW", GREEN
 
-def _safe(t: str) -> str:
+def _opportunity_score(bd: dict) -> int:
+    """
+    Fast.site Opportunity Score — headline metric for the sales report.
+    Weighted entirely from Speed (50%) and Performance (35%), with a small
+    Page Ranking nudge (15%), then inverted so a HIGH score means the site
+    is slow and needs Varnish Edge Cache. Mirrors lead_tools.varnish_opportunity_score.
+    """
+    speed   = (bd.get("speed") or {}).get("score", 50)
+    perf    = (bd.get("performance") or {}).get("score", 50)
+    ranking = (bd.get("page_ranking") or {}).get("score", 50)
+    weighted = speed * 0.50 + perf * 0.35 + ranking * 0.15
+    return max(0, min(100, round(100 - weighted)))
+
+def _opportunity_label(score: int) -> str:
+    if score >= 75: return _t("HIGH OPPORTUNITY", "HOHES POTENZIAL")
+    if score >= 50: return _t("MEDIUM OPPORTUNITY", "MITTLERES POTENZIAL")
+    if score >= 25: return _t("LOW OPPORTUNITY", "GERINGES POTENZIAL")
+    return _t("ALREADY FAST", "BEREITS SCHNELL")
+
+
     t = str(t)
     t = t.replace('→', '->').replace('–', '-').replace('—', ' - ')
     # Preserve checkmark as XML entity before stripping non-ASCII
@@ -195,6 +214,25 @@ def _draw_cover(c, audit):
     c.circle(W / 2, score_cy, 82, fill=1, stroke=0)
     c.setFillColor(colors.HexColor("#1B2236"))
     c.circle(W / 2, score_cy, 62, fill=1, stroke=0)
+
+    # ── Fast.site Opportunity Score — the headline sales metric ─────────────
+    # Speed + Performance only (Varnish Edge Cache's direct levers), shown
+    # as a bold badge above the overall score so it's the first number a
+    # prospect sees.
+    opp_score = _opportunity_score(bd)
+    opp_label = _opportunity_label(opp_score)
+    opp_col   = RED if opp_score >= 75 else (AMBER if opp_score >= 50 else (SKY if opp_score >= 25 else GREEN))
+
+    opp_pill_w, opp_pill_h = 280, 34
+    opp_pill_x = W / 2 - opp_pill_w / 2
+    opp_pill_y = score_cy + 92
+    c.setFillColor(opp_col)
+    c.roundRect(opp_pill_x, opp_pill_y, opp_pill_w, opp_pill_h, 8, fill=1, stroke=0)
+    c.setFillColor(WHITE)
+    c.setFont("Helvetica-Bold", 9)
+    c.drawCentredString(W / 2, opp_pill_y + 21, _t("FAST.SITE OPPORTUNITY SCORE", "FAST.SITE POTENZIAL-SCORE"))
+    c.setFont("Helvetica-Bold", 15)
+    c.drawCentredString(W / 2, opp_pill_y + 6, f"{opp_score}/100 · {opp_label}")
 
     pill_w, pill_h = 148, 21
     pill_x = W / 2 - pill_w / 2

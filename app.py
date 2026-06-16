@@ -603,7 +603,7 @@ with header_right:
         st.session_state["lang"] = "de" if _LANG == "en" else "en"
         # Reset audit state so nothing is stale after language switch
         for k in ["audits", "results", "engines", "tech", "direct_tech",
-                  "direct_url_ready", "selected_for_audit", "_select_action"]:
+                  "direct_tech_skipped", "direct_url_ready", "selected_for_audit", "_select_action"]:
             st.session_state.pop(k, None)
         st.rerun()
 
@@ -631,7 +631,7 @@ is_direct_mode = "🌐" in mode
 prev_mode = st.session_state.get("_active_mode")
 if prev_mode is not None and prev_mode != is_direct_mode:
     for key in ["audits", "results", "engines", "tech", "direct_tech",
-                "direct_url_ready", "selected_for_audit", "_select_action"]:
+                "direct_tech_skipped", "direct_url_ready", "selected_for_audit", "_select_action"]:
         st.session_state.pop(key, None)
 st.session_state["_active_mode"] = is_direct_mode
 
@@ -663,6 +663,7 @@ if is_direct_mode:
                 raw = "https://" + raw
             st.session_state["direct_url_ready"] = raw
             st.session_state.pop("direct_tech", None)
+            st.session_state.pop("direct_tech_skipped", None)
             st.session_state.pop("audits", None)
             st.session_state.pop("results", None)
             st.rerun()
@@ -699,6 +700,12 @@ if is_direct_mode:
             st.session_state["direct_tech"] = direct_tech
             st.rerun()
 
+        if skip_btn:
+            st.session_state.setdefault("direct_tech_skipped", set()).add(ready_url)
+            st.rerun()
+
+        skipped = ready_url in st.session_state.get("direct_tech_skipped", set())
+
         if already_detected:
             t = direct_tech[ready_url]
             st.markdown(
@@ -708,7 +715,7 @@ if is_direct_mode:
             st.success(_t("Done! You can now run the full website check below.",
                           "Fertig! Sie können jetzt die vollständige Website-Prüfung starten."))
 
-        if already_detected or skip_btn:
+        if already_detected or skipped:
             st.markdown("")
             st.markdown(
                 f'<div class="step-pill">{_t("Step 3", "Schritt 3")} &nbsp;·&nbsp; {_t("Run the check", "Prüfung starten")}</div>',
